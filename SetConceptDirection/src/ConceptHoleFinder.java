@@ -12,20 +12,18 @@ import java.util.List;
 import java.util.Map;
 
 
-public class SetDirection {
-	private static Map<String,List<String>> topicOutcomeMap;
-	private static Map<String,List<String>> topicPreMap;
-	private static String[] commonConcepts;
-	private static File file; //output file where similarity results are stored
+public class ConceptHoleFinder {
+	private static File file; 
 	private static FileWriter fw;
 	private static BufferedWriter bw;	
+	private static Map<String,List<String>> conceptHolesMap;//topic is the key, and the list of holes for that topic are in this map
+	private static Map<String,List<String>> topicOutcomeMap;
+	private static Map<String,List<String>> autoTopicExampleConcept;
+	private static String[] commonConcepts;
+
 	public static void main (String[] args)
 	{
-		commonConcepts = new String[]{"FormalMethodParameter","ClassDefinition","VoidDataType",
-				                      "MethodDefinition","StaticMethodSpecifier","PublicMethodSpecifier",
-				                      "ActualMethodParameter"};
-		readTopicDirection();
-		file = new File("./resources/adjusted_direction_automatic_indexing.txt");
+		file = new File("./resources/concept_holes.txt");
 		try {
 			if (!file.exists())
 				file.createNewFile();
@@ -34,10 +32,84 @@ public class SetDirection {
 		} catch (IOException e) {
 				e.printStackTrace();
 		}
-		updateConceptDirection();
+		commonConcepts = new String[]{"FormalMethodParameter","ClassDefinition","VoidDataType",
+                "MethodDefinition","StaticMethodSpecifier","PublicMethodSpecifier",
+                "ActualMethodParameter"};
+		readTopicDirection();
+		createAutomaticIndexingExampleConcepts();
+		findConceptHoles();
+	}
+	
+	private static void createAutomaticIndexingExampleConcepts() {
+		autoTopicExampleConcept = new HashMap<String,List<String>>(); 
+		BufferedReader br = null;
+		String line = "";
+		String cvsSplitBy = ",";
+		boolean isHeader = true;
+		try {
+			br = new BufferedReader(new FileReader("./resources/automatic_indexing.csv"));
+			String[] clmn;
+			String title,topic, concept, tfidf, direction, type;
+			List<String> list;
+			while ((line = br.readLine()) != null) {
+				if (isHeader)
+				{
+					isHeader = false;
+					continue;
+				}
+				clmn = line.split(cvsSplitBy);
+				title = clmn[0];
+				topic = clmn[1];
+				concept = clmn[2];
+				if (concept.toLowerCase().equals("true"))
+					concept = "TRUE";
+				else if (concept.toLowerCase().equals("false"))
+					concept = "FALSE";
+				else if (concept.equals("System.out.println"))
+					...
+				tfidf = clmn[3];
+				direction = clmn[4];
+				type = clmn[5];
+				if (Arrays.asList(commonConcepts).contains(concept) == false)
+				{
+					if (type.equals("example"))
+					{
+						if (autoTopicExampleConcept.containsKey(title) == false)
+						{
+							if (autoTopicExampleConcept.get(title) != null)
+							{
+								list = autoTopicExampleConcept.get(title);
+								if (list.contains(concept) == false)
+									list.add(concept);
+							}	
+							else
+							{
+								list = new ArrayList<String>();
+								list.add(concept);
+								autoTopicExampleConcept.put(topic, list);
+							}
+						}
+					}					
+				}			
+			}
+		}catch (FileNotFoundException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			} finally {
+				if (br != null) {
+					try {
+						br.close();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+			}		
 	}
 
-	private static void updateConceptDirection() {
+	private static void findConceptHoles()
+	{
+		conceptHolesMap = new HashMap<String,List<String>>(); 
 		BufferedReader br = null;
 		String line = "";
 		String cvsSplitBy = ",";
@@ -60,6 +132,8 @@ public class SetDirection {
 					concept = "TRUE";
 				else if (concept.toLowerCase().equals("false"))
 					concept = "FALSE";
+				else if (concept.equals("System.out.println"))
+					...
 				tfidf = clmn[3];
 				direction = clmn[4];
 				type = clmn[5];
@@ -92,9 +166,11 @@ public class SetDirection {
 					}
 				}
 			}			
+	
 	}
 	
-	public static void writeAdjustedDirection(String title,String topic,String concept, String tfidf, String direction, String type) {
+	public static void writeAdjustedDirection(String title,String topic,String concept, String tfidf, String direction, String type)
+	{
 		try {
 			bw.write(title+","+topic+","+concept+","+tfidf+","+direction+","+type);
 			bw.newLine();
@@ -104,33 +180,8 @@ public class SetDirection {
 		}
 	}
 	
-	private static boolean isInPreManualIndexing(String topic, String concept) {
-		if (topicPreMap.get(topic) != null)
-		{
-			for (String pre : topicPreMap.get(topic))
-				if (pre.equals(concept))
-					return true;		
-		}
-		else
-			System.out.println(topic+" "+" has no prerequisite");
-		return false;
-	}
-
-	private static boolean isInOutcomeManualIndexing(String topic,String concept) {
-		if (topicOutcomeMap.get(topic) != null)
-		{
-			for (String outcome : topicOutcomeMap.get(topic))
-				if (outcome.equals(concept))
-					return true;
-		}	
-		else
-			System.out.println(topic+" "+" has no outcome");
-		return false;
-	}
-
 	private static void readTopicDirection() {
 		topicOutcomeMap = new HashMap<String,List<String>>();
-		topicPreMap = new HashMap<String,List<String>>();
 		BufferedReader br = null;
 		String line = "";
 		String cvsSplitBy = ",";
@@ -167,26 +218,7 @@ public class SetDirection {
 						list.add(concept);
 						topicOutcomeMap.put(topic, list);
 					}
-				}
-				else if (direction.equals("0"))
-				{
-					if (topicPreMap.containsKey(topic) != false)
-					{
-						list = topicPreMap.get(topic);	
-						if (list.contains(concept) == false)
-							list.add(concept);
-						topicPreMap.put(topic, list);
-					}
-					else
-					{
-						list = new ArrayList<String>();	
-						list.add(concept);
-						topicPreMap.put(topic, list);
-					}
-				}
-			
-				
-				
+				}				
 			}	 
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
@@ -208,13 +240,5 @@ public class SetDirection {
 			count += topicOutcomeMap.get(t).size();
 		}
 		System.out.println("topicOutcomeMap: topic:"+countTopic+" topic_concept:"+count);	
-		count = 0;
-		countTopic = 0;
-		for (String t : topicPreMap.keySet())
-		{
-			countTopic++;
-			count += topicPreMap.get(t).size();
-		}
-		System.out.println("topicPreMap: topic:"+countTopic+" topic_concept:"+count);
 	}
 }
