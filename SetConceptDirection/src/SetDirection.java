@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 
 public class SetDirection {
@@ -19,11 +20,17 @@ public class SetDirection {
 	private static File file; //output file where similarity results are stored
 	private static FileWriter fw;
 	private static BufferedWriter bw;	
+	private static Map<String,List<String>> topicContentMap;
+	private static Map<Integer,String> topicOrderMap;
+	
 	public static void main (String[] args)
 	{
 		commonConcepts = new String[]{"FormalMethodParameter","ClassDefinition","VoidDataType",
 				                      "MethodDefinition","StaticMethodSpecifier","PublicMethodSpecifier",
-				                      "ActualMethodParameter"};
+				                      "ActualMethodParameter","PublicClassSpecifier"};
+		//currently topic order and content for course-id = 1 is used. So, the direction of only contents in topic_content would be adjusted
+		readTopicContent();
+		readTopicOrder();
 		readTopicDirection();
 		file = new File("./resources/adjusted_direction_automatic_indexing.txt");
 		try {
@@ -35,6 +42,107 @@ public class SetDirection {
 				e.printStackTrace();
 		}
 		updateConceptDirection();
+		try {
+			if (fw != null) {
+				fw.close();
+			}
+			if (bw != null) {
+				bw.close();
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	private static void readTopicContent() {
+		topicContentMap = new HashMap<String,List<String>>(); 
+		BufferedReader br = null;
+		String line = "";
+		String cvsSplitBy = ",";
+		boolean isHeader = true;
+		try {
+			br = new BufferedReader(new FileReader("./resources/topic_content.csv"));
+			String[] clmn;
+			String topic;
+			String content;
+			List<String> list;
+			while ((line = br.readLine()) != null) {
+				if (isHeader)
+				{
+					isHeader = false;
+					continue;
+				}
+				clmn = line.split(cvsSplitBy);
+				topic = clmn[0];				
+				content = clmn[1];
+				if (topicContentMap.containsKey(topic) == true)
+				{
+					list = topicContentMap.get(topic);
+					if (list.contains(content) == false)
+						list.add(content);									
+				}
+				else
+				{
+					list = new ArrayList<String>();
+					list.add(content);
+					topicContentMap.put(topic,list);
+				}
+			}
+		}catch (FileNotFoundException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			} finally {
+				if (br != null) {
+					try {
+						br.close();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+			}		
+		int count = 0;
+		for (List<String> l : topicContentMap.values())
+			count += l.size();
+		System.out.println("topicContentMap: "+count);
+	}
+
+	private static void readTopicOrder() {
+		topicOrderMap = new HashMap<Integer,String>(); 
+		BufferedReader br = null;
+		String line = "";
+		String cvsSplitBy = ",";
+		boolean isHeader = true;
+		try {
+			br = new BufferedReader(new FileReader("./resources/topic_order.csv"));
+			String[] clmn;
+			String topic;
+			int order;
+			while ((line = br.readLine()) != null) {
+				if (isHeader)
+				{
+					isHeader = false;
+					continue;
+				}
+				clmn = line.split(cvsSplitBy);
+				order = Integer.parseInt(clmn[0]);
+				topic = clmn[1];				
+				topicOrderMap.put(order, topic);
+			}
+		}catch (FileNotFoundException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			} finally {
+				if (br != null) {
+					try {
+						br.close();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+			}		
+		System.out.println("topicOrderMap: "+topicOrderMap.size());	
 	}
 
 	private static void updateConceptDirection() {
@@ -54,30 +162,37 @@ public class SetDirection {
 				}
 				clmn = line.split(cvsSplitBy);
 				title = clmn[0];
-				topic = clmn[1];
-				concept = clmn[2];
-				if (concept.toLowerCase().equals("true"))
-					concept = "TRUE";
-				else if (concept.toLowerCase().equals("false"))
-					concept = "FALSE";
-				tfidf = clmn[3];
-				direction = clmn[4];
-				type = clmn[5];
-				if (Arrays.asList(commonConcepts).contains(concept) == false)
+				concept = clmn[1];
+				tfidf = clmn[2];
+				direction = clmn[3];
+				type = clmn[4];				
+				topic = getTopic(title);
+				if (topic != null)
 				{
-					if (isInOutcomeManualIndexing(topic,concept) == true)
+					boolean isInOutcomeManualIndexing;
+					boolean isOutcomePreviousTopics;
+					if (Arrays.asList(commonConcepts).contains(concept) == false)
 					{
-						direction = "outcome";
+						isInOutcomeManualIndexing = isInOutcomeManualIndexing(topic,concept);
+						isOutcomePreviousTopics = isOutcomePreviousTopics(topic,concept);
+						if (isOutcomePreviousTopics & isInOutcomeManualIndexing)
+							System.out.println("Overlapping outcomes: "+topic+" "+concept);
+						if (isInOutcomeManualIndexing == true)
+						{
+							direction = "outcome";
+						}
+//						else if (isInPreManualIndexing(topic,concept) == true)
+						else if (isOutcomePreviousTopics)
+							direction = "prerequisite";
+						else
+							direction = "unknown";	
 					}
-					else if (isInPreManualIndexing(topic,concept) == true)
-						direction = "prerequisite";
 					else
-						direction = "unknown";	
+						direction = "-";					
+					//write it to the adjusted direction file
+					writeAdjustedDirection(title,topic,concept,tfidf,direction,type);
 				}
-				else
-					direction = "-";					
-				//write it to the adjusted direction file
-				writeAdjustedDirection(title,topic,concept,tfidf,direction,type);
+				
 			}
 		}catch (FileNotFoundException e) {
 				e.printStackTrace();
@@ -93,7 +208,43 @@ public class SetDirection {
 				}
 			}			
 	}
-	
+	//we assume that each content is assigned to one topic
+	private static String getTopic(String title) {
+		for (Entry<String, List<String>> entry : topicContentMap.entrySet())
+		{
+			if (entry.getValue().contains(title))
+				return entry.getKey();
+		}
+		return null;
+	}
+
+	private static boolean isOutcomePreviousTopics(String topic, String concept) {
+		//find the order of the current topic
+		int curTopic = 0;
+		for (int i : topicOrderMap.keySet())
+		{
+			if (topicOrderMap.get(i).equals(topic))
+			{
+				curTopic = i;
+				break;
+			}
+		}
+		//find list of topics before this current topic
+		List<String> preTopicList = new ArrayList<String>();
+		for (int i : topicOrderMap.keySet())
+		{
+			if ( i < curTopic )
+				preTopicList.add(topicOrderMap.get(i));			
+		}
+		//list all outcomes of the previous topics
+		for (String t : preTopicList)
+		{
+			if (topicOutcomeMap.get(t).contains(concept))
+				return true;
+		}
+		return false;		
+	}
+
 	public static void writeAdjustedDirection(String title,String topic,String concept, String tfidf, String direction, String type) {
 		try {
 			bw.write(title+","+topic+","+concept+","+tfidf+","+direction+","+type);
@@ -119,9 +270,8 @@ public class SetDirection {
 	private static boolean isInOutcomeManualIndexing(String topic,String concept) {
 		if (topicOutcomeMap.get(topic) != null)
 		{
-			for (String outcome : topicOutcomeMap.get(topic))
-				if (outcome.equals(concept))
-					return true;
+			if (topicOutcomeMap.get(topic).contains(concept))
+				return true;
 		}	
 		else
 			System.out.println(topic+" "+" has no outcome");
@@ -184,9 +334,6 @@ public class SetDirection {
 						topicPreMap.put(topic, list);
 					}
 				}
-			
-				
-				
 			}	 
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
