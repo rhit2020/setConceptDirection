@@ -10,12 +10,10 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 
 public class SetDirection {
 	private static Map<String,List<String>> topicOutcomeMap;
-	private static Map<String,List<String>> topicPreMap;
 	private static String[] commonConcepts;
 	private static File file; //output file where similarity results are stored
 	private static FileWriter fw;
@@ -31,7 +29,6 @@ public class SetDirection {
 		//currently topic order and content for course-id = 1 is used. So, the direction of only contents in topic_content would be adjusted
 		readTopicContent();
 		readTopicOrder();
-		readTopicDirection();
 		file = new File("./resources/adjusted_direction_automatic_indexing.txt");
 		try {
 			if (!file.exists())
@@ -41,6 +38,7 @@ public class SetDirection {
 		} catch (IOException e) {
 				e.printStackTrace();
 		}
+		topicOutcomeMap = new HashMap<String, List<String>>();
 		updateConceptDirection();
 		try {
 			if (fw != null) {
@@ -154,6 +152,7 @@ public class SetDirection {
 			br = new BufferedReader(new FileReader("./resources/automatic_indexing.csv"));
 			String[] clmn;
 			String title,topic, concept, tfidf, direction, type;
+			String firstTopic = "Variables";
 			while ((line = br.readLine()) != null) {
 				if (isHeader)
 				{
@@ -166,31 +165,47 @@ public class SetDirection {
 				tfidf = clmn[2];
 				direction = clmn[3];
 				type = clmn[4];				
-				topic = getTopic(title);
+				topic = clmn[5];				
 				if (topic != null)
-				{
-					boolean isInOutcomeManualIndexing;
-					boolean isOutcomePreviousTopics;
-					if (Arrays.asList(commonConcepts).contains(concept) == false)
+				{					
+					if (Arrays.asList(commonConcepts).contains(concept) == true)
 					{
-						isInOutcomeManualIndexing = isInOutcomeManualIndexing(topic,concept);
-						isOutcomePreviousTopics = isOutcomePreviousTopics(topic,concept);
-						if (isOutcomePreviousTopics & isInOutcomeManualIndexing)
-							System.out.println("Overlapping outcomes: "+topic+" "+concept);
-						if (isInOutcomeManualIndexing == true)
+						direction = "-";
+					}
+					else
+					{
+						if (topic.equals(firstTopic) == true)
 						{
 							direction = "outcome";
 						}
-//						else if (isInPreManualIndexing(topic,concept) == true)
-						else if (isOutcomePreviousTopics)
-							direction = "prerequisite";
 						else
-							direction = "unknown";	
+						{
+							boolean isOutcomePreviousTopics;
+							isOutcomePreviousTopics = isOutcomePreviousTopics(topic,concept);
+							if (isOutcomePreviousTopics)
+								direction = "prerequisite";
+							else						
+								direction = "outcome";						
+						}								
+
 					}
-					else
-						direction = "-";					
 					//write it to the adjusted direction file
 					writeAdjustedDirection(title,topic,concept,tfidf,direction,type);
+					if (direction.equals("outcome"))
+					{
+						if ( topicOutcomeMap.containsKey(topic) == false)
+						{
+							List<String> list = new ArrayList<String>();
+							list.add(concept);
+							topicOutcomeMap.put(topic,list);
+						}
+						else
+						{
+							List<String> list = topicOutcomeMap.get(topic);
+							if (list.contains(concept) == false)
+								list.add(concept);
+						}
+					}
 				}
 				
 			}
@@ -207,15 +222,6 @@ public class SetDirection {
 					}
 				}
 			}			
-	}
-	//we assume that each content is assigned to one topic
-	private static String getTopic(String title) {
-		for (Entry<String, List<String>> entry : topicContentMap.entrySet())
-		{
-			if (entry.getValue().contains(title))
-				return entry.getKey();
-		}
-		return null;
 	}
 
 	private static boolean isOutcomePreviousTopics(String topic, String concept) {
@@ -239,8 +245,13 @@ public class SetDirection {
 		//list all outcomes of the previous topics
 		for (String t : preTopicList)
 		{
-			if (topicOutcomeMap.get(t).contains(concept))
-				return true;
+			if(topicOutcomeMap.get(t) == null)
+				System.out.println(t+" has no outcome ");
+			else 
+			{
+				if (topicOutcomeMap.get(t).contains(concept))
+					return true;
+			}			
 		}
 		return false;		
 	}
@@ -253,115 +264,5 @@ public class SetDirection {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-	}
-	
-	private static boolean isInPreManualIndexing(String topic, String concept) {
-		if (topicPreMap.get(topic) != null)
-		{
-			for (String pre : topicPreMap.get(topic))
-				if (pre.equals(concept))
-					return true;		
-		}
-		else
-			System.out.println(topic+" "+" has no prerequisite");
-		return false;
-	}
-
-	private static boolean isInOutcomeManualIndexing(String topic,String concept) {
-		if (topicOutcomeMap.get(topic) != null)
-		{
-			if (topicOutcomeMap.get(topic).contains(concept))
-				return true;
-		}	
-		else
-			System.out.println(topic+" "+" has no outcome");
-		return false;
-	}
-
-	private static void readTopicDirection() {
-		topicOutcomeMap = new HashMap<String,List<String>>();
-		topicPreMap = new HashMap<String,List<String>>();
-		BufferedReader br = null;
-		String line = "";
-		String cvsSplitBy = ",";
-		boolean isHeader = true;
-		try {
-			br = new BufferedReader(new FileReader("./resources/Manual_indexing.csv"));
-			String[] clmn;
-			String topic;
-			String concept;
-			String direction;
-			while ((line = br.readLine()) != null) {
-				if (isHeader)
-				{
-					isHeader = false;
-					continue;
-				}
-				clmn = line.split(cvsSplitBy);
-				topic = clmn[1];
-				concept = clmn[2];
-				direction = clmn[3];
-				List<String> list;
-				if (direction.equals("1"))
-				{
-					if (topicOutcomeMap.containsKey(topic) != false)
-					{
-						list = topicOutcomeMap.get(topic);	
-						if (list.contains(concept) == false)
-							list.add(concept);
-						topicOutcomeMap.put(topic, list);
-					}
-					else
-					{
-						list = new ArrayList<String>();	
-						list.add(concept);
-						topicOutcomeMap.put(topic, list);
-					}
-				}
-				else if (direction.equals("0"))
-				{
-					if (topicPreMap.containsKey(topic) != false)
-					{
-						list = topicPreMap.get(topic);	
-						if (list.contains(concept) == false)
-							list.add(concept);
-						topicPreMap.put(topic, list);
-					}
-					else
-					{
-						list = new ArrayList<String>();	
-						list.add(concept);
-						topicPreMap.put(topic, list);
-					}
-				}
-			}	 
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		} finally {
-			if (br != null) {
-				try {
-					br.close();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
-		}	
-		int count = 0,countTopic = 0;
-		for (String t : topicOutcomeMap.keySet())
-		{
-			countTopic++;
-			count += topicOutcomeMap.get(t).size();
-		}
-		System.out.println("topicOutcomeMap: topic:"+countTopic+" topic_concept:"+count);	
-		count = 0;
-		countTopic = 0;
-		for (String t : topicPreMap.keySet())
-		{
-			countTopic++;
-			count += topicPreMap.get(t).size();
-		}
-		System.out.println("topicPreMap: topic:"+countTopic+" topic_concept:"+count);
-	}
+	}	
 }

@@ -21,6 +21,10 @@ public class ConceptHoleFinder {
 
 	private static Map<String,List<String>> topicQuestionOutcomeMap;
 	private static Map<String,List<String>> topicExampleOutcomeMap;
+	
+	private static Map<String,List<String>> exampleConceptContentMap = new HashMap<String,List<String>>();
+	private static Map<String,List<String>> questionConceptContentMap= new HashMap<String,List<String>>();
+	private static Map<Integer,String> topicOrderMap;
 
 
 	private static String[] commonConcepts;
@@ -39,9 +43,20 @@ public class ConceptHoleFinder {
 		commonConcepts = new String[]{"FormalMethodParameter","ClassDefinition","VoidDataType",
                 "MethodDefinition","StaticMethodSpecifier","PublicMethodSpecifier",
                 "ActualMethodParameter","PublicClassSpecifier"};
+		readTopicOrder();
 		readTopicDirection();
 		findConceptHoles();
 		writeConceptHoles();
+		file = new File("./resources/topic_outcomes.txt");
+		try {
+			if (!file.exists())
+				file.createNewFile();
+			fw = new FileWriter(file);
+			bw = new BufferedWriter(fw);
+		} catch (IOException e) {
+				e.printStackTrace();
+		}
+		writeTopicOutcomes();
 		try {
 			if (fw != null) {
 				fw.close();
@@ -54,14 +69,105 @@ public class ConceptHoleFinder {
 		}
 	}
 	
+	private static void readTopicOrder() {
+		topicOrderMap = new HashMap<Integer,String>(); 
+		BufferedReader br = null;
+		String line = "";
+		String cvsSplitBy = ",";
+		boolean isHeader = true;
+		try {
+			br = new BufferedReader(new FileReader("./resources/topic_order.csv"));
+			String[] clmn;
+			String topic;
+			int order;
+			while ((line = br.readLine()) != null) {
+				if (isHeader)
+				{
+					isHeader = false;
+					continue;
+				}
+				clmn = line.split(cvsSplitBy);
+				order = Integer.parseInt(clmn[0]);
+				topic = clmn[1];				
+				topicOrderMap.put(order, topic);
+			}
+		}catch (FileNotFoundException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			} finally {
+				if (br != null) {
+					try {
+						br.close();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+			}		
+		System.out.println("topicOrderMap: "+topicOrderMap.size());	
+	}
 	
+	private static void writeTopicOutcomes() {
+		int q,e;
+		try {
+			for (String topic : topicQuestionOutcomeMap.keySet())
+			{
+				for (String c : topicQuestionOutcomeMap.get(topic))
+				{
+					q = (questionConceptContentMap.get(c) == null? 0:questionConceptContentMap.get(c).size());
+					e = (exampleConceptContentMap.get(c) == null? 0:exampleConceptContentMap.get(c).size());
+
+					bw.write(findOrder(topic)+","+topic+","+c+","+" q:"+q+" e:"+e);
+					bw.newLine();
+				    bw.flush();
+				}
+			}	
+			
+			for (String topic : topicExampleOutcomeMap.keySet())
+			{
+				for (String c : topicExampleOutcomeMap.get(topic))
+				{
+					q = (questionConceptContentMap.get(c) == null? 0:questionConceptContentMap.get(c).size());
+					e = (exampleConceptContentMap.get(c) == null? 0:exampleConceptContentMap.get(c).size());
+
+					bw.write(findOrder(topic)+","+topic+","+c+","+" q:"+q+" e:"+e);
+					bw.newLine();
+				    bw.flush();
+				}
+			}	
+		} catch (IOException e2) {
+			e2.printStackTrace();
+		}		
+	
+		
+	}
+
+
+	private static int findOrder(String topic) {
+		//find the order of the current topic
+				int curTopic = 0;
+				for (int i : topicOrderMap.keySet())
+				{
+					if (topicOrderMap.get(i).equals(topic))
+					{
+						curTopic = i;
+						break;
+					}
+				}
+				return curTopic;
+	}
+
 	private static void writeConceptHoles() {
+		int q,e;
 		try {
 			for (String topic : conceptHolesQuestionMap.keySet())
 			{
 				for (String c : conceptHolesQuestionMap.get(topic))
 				{
-					bw.write(topic+","+c+",NoExample");
+					q = (questionConceptContentMap.get(c) == null? 0:questionConceptContentMap.get(c).size());
+					e = (exampleConceptContentMap.get(c) == null? 0:exampleConceptContentMap.get(c).size());
+
+					bw.write(findOrder(topic)+","+topic+","+c+","+" q:"+q+" e:"+e);
 					bw.newLine();
 				    bw.flush();
 				}
@@ -71,13 +177,16 @@ public class ConceptHoleFinder {
 			{
 				for (String c : conceptHolesExampleMap.get(topic))
 				{
-					bw.write(topic+","+c+",NoQuestion");
+					q = (questionConceptContentMap.get(c) == null? 0:questionConceptContentMap.get(c).size());
+					e = (exampleConceptContentMap.get(c) == null? 0:exampleConceptContentMap.get(c).size());
+
+					bw.write(findOrder(topic)+","+topic+","+c+","+" q:"+q+" e:"+e);
 					bw.newLine();
 				    bw.flush();
 				}
 			}	
-		} catch (IOException e) {
-			e.printStackTrace();
+		} catch (IOException e2) {
+			e2.printStackTrace();
 		}		
 	}
 
@@ -155,6 +264,7 @@ public class ConceptHoleFinder {
 		try {
 			br = new BufferedReader(new FileReader("./resources/adjusted_direction_automatic_indexing.txt"));
 			String[] clmn;
+			String content;
 			String topic;
 			String concept;
 			String direction;
@@ -166,6 +276,7 @@ public class ConceptHoleFinder {
 					continue;
 				}
 				clmn = line.split(cvsSplitBy);
+				content = clmn[0];
 				topic = clmn[1];
 				concept = clmn[2];
 				direction = clmn[4];
@@ -188,6 +299,18 @@ public class ConceptHoleFinder {
 							list.add(concept);
 							topicQuestionOutcomeMap.put(topic, list);
 						}
+						if (questionConceptContentMap.containsKey(concept) == true)
+						{
+							List<String> l = questionConceptContentMap.get(concept);
+							if (l.contains(content) == false)
+								l.add(content);
+						}
+						else
+						{
+							List<String> l = new ArrayList<String>();
+							l.add(content);
+							questionConceptContentMap.put(concept, l);
+						}
 					}		
 				}
 				else if (type.equals("example"))
@@ -206,6 +329,18 @@ public class ConceptHoleFinder {
 							list = new ArrayList<String>();	
 							list.add(concept);
 							topicExampleOutcomeMap.put(topic, list);
+						}
+						if (exampleConceptContentMap.containsKey(concept) == true)
+						{
+							List<String> l = exampleConceptContentMap.get(concept);
+							if (l.contains(content) == false)
+								l.add(content);
+						}
+						else
+						{
+							List<String> l = new ArrayList<String>();
+							l.add(content);
+							exampleConceptContentMap.put(concept, l);
 						}
 					}		
 				}
