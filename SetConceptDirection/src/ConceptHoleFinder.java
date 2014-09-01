@@ -127,12 +127,15 @@ public class ConceptHoleFinder {
 			{
 				for (String c : topicExampleOutcomeMap.get(topic))
 				{
-					q = (questionConceptContentMap.get(c) == null? 0:questionConceptContentMap.get(c).size());
-					e = (exampleConceptContentMap.get(c) == null? 0:exampleConceptContentMap.get(c).size());
+					if (topicQuestionOutcomeMap.get(topic).contains(c) == false)
+					{
+						q = (questionConceptContentMap.get(c) == null? 0:questionConceptContentMap.get(c).size());
+						e = (exampleConceptContentMap.get(c) == null? 0:exampleConceptContentMap.get(c).size());
 
-					bw.write(findOrder(topic)+","+topic+","+c+","+" q:"+q+" e:"+e);
-					bw.newLine();
-				    bw.flush();
+						bw.write(findOrder(topic)+","+topic+","+c+","+" q:"+q+" e:"+e);
+						bw.newLine();
+					    bw.flush();
+					}					
 				}
 			}	
 		} catch (IOException e2) {
