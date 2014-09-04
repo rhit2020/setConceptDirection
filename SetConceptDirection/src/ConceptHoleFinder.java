@@ -127,6 +127,8 @@ public class ConceptHoleFinder {
 			{
 				for (String c : topicExampleOutcomeMap.get(topic))
 				{
+					if (topicQuestionOutcomeMap.get(topic) == null)
+						System.out.println("####"+topic);
 					if (topicQuestionOutcomeMap.get(topic).contains(c) == false)
 					{
 						q = (questionConceptContentMap.get(c) == null? 0:questionConceptContentMap.get(c).size());
@@ -368,7 +370,7 @@ public class ConceptHoleFinder {
 			countTopic++;
 			count += topicQuestionOutcomeMap.get(t).size();
 		}
-		System.out.println("topicOutcomeMap: topic:"+countTopic+" topic_concept:"+count);	
+		System.out.println("topicQuestionOutcomeMap: topic:"+countTopic+" topic_concept:"+count);	
 		
 		count = 0;countTopic = 0;
 		for (String t : topicExampleOutcomeMap.keySet())
