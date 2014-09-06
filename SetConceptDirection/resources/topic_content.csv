@@ -27,11 +27,12 @@ Classes,jClasses4
 Classes,jClasses_Getter
 Classes,CounterDemo
 Classes,BankAccountTester
-Classes,CashRegisterTester
 Classes,thisReference
 Classes,jClassBankAccountThis
 Classes,Bicycle_v2
 Classes,Rectangle_v2
+Classes,jClassCashRegister
+Classes,CashRegisterConstantField
 Primitive_Data_Types,PrimitiveDataTypes_v2
 Primitive_Data_Types,jUsingDouble
 Primitive_Data_Types,jusingFloat
