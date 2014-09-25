@@ -1,5 +1,5 @@
-170,Exceptions,ExceptionClass, q:3 e:0
 170,Exceptions,ThrowStatement, q:5 e:0
+170,Exceptions,ExceptionClass, q:3 e:0
 170,Exceptions,ThrowsSpecification, q:2 e:0
 140,Classes,InstanceFieldInitializationStatement, q:1 e:0
 152,Wrapper_Classes,java.lang.Double, q:4 e:0
