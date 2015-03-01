@@ -31,7 +31,7 @@ public class ConceptHoleFinder {
 
 	public static void main (String[] args)
 	{
-		file = new File("./resources/concept_holes.txt");
+		file = new File("./resources/concept_holes_ae.txt");
 		try {
 			if (!file.exists())
 				file.createNewFile();
@@ -47,7 +47,7 @@ public class ConceptHoleFinder {
 		readTopicDirection();
 		findConceptHoles();
 		writeConceptHoles();
-		file = new File("./resources/topic_outcomes.txt");
+		file = new File("./resources/topic_outcomes_ae.txt");
 		try {
 			if (!file.exists())
 				file.createNewFile();
@@ -267,7 +267,7 @@ public class ConceptHoleFinder {
 		String cvsSplitBy = ",";
 		boolean isHeader = false; //there is no header
 		try {
-			br = new BufferedReader(new FileReader("./resources/adjusted_direction_automatic_indexing.txt"));
+			br = new BufferedReader(new FileReader("./resources/adjusted_direction_automatic_indexing_ae.txt"));
 			String[] clmn;
 			String content;
 			String topic;
@@ -318,7 +318,7 @@ public class ConceptHoleFinder {
 						}
 					}		
 				}
-				else if (type.equals("example"))
+				else if (type.equals("example") | type.equals("animated_example"))
 				{
 					if (direction.equals("outcome"))
 					{

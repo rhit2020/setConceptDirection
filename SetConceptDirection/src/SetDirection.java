@@ -18,7 +18,7 @@ public class SetDirection {
 	private static File file; //output file where similarity results are stored
 	private static FileWriter fw;
 	private static BufferedWriter bw;	
-	private static Map<String,List<String>> topicContentMap;
+	private static Map<String,List<String>> topicContentMap; //this has no use for the program it can be removed
 	private static Map<Integer,String> topicOrderMap;
 	
 	public static void main (String[] args)
@@ -29,7 +29,7 @@ public class SetDirection {
 		//currently topic order and content for course-id = 1 is used. So, the direction of only contents in topic_content would be adjusted
 		readTopicContent();
 		readTopicOrder();
-		file = new File("./resources/adjusted_direction_automatic_indexing.txt");
+		file = new File("./resources/adjusted_direction_automatic_indexing_ae.txt");
 		try {
 			if (!file.exists())
 				file.createNewFile();
@@ -59,7 +59,7 @@ public class SetDirection {
 		String cvsSplitBy = ",";
 		boolean isHeader = true;
 		try {
-			br = new BufferedReader(new FileReader("./resources/topic_content.csv"));
+			br = new BufferedReader(new FileReader("./resources/topic_content_ae.csv"));
 			String[] clmn;
 			String topic;
 			String content;
@@ -149,7 +149,7 @@ public class SetDirection {
 		String cvsSplitBy = ",";
 		boolean isHeader = true;
 		try {
-			br = new BufferedReader(new FileReader("./resources/automatic_indexing.csv"));
+			br = new BufferedReader(new FileReader("./resources/automatic_indexing_ae.csv"));
 			String[] clmn;
 			String title,topic, concept, tfidf, direction, type;
 			String firstTopic = "Variables";
