@@ -1,0 +1,20 @@
+order,topic_name
+10,"Table Creation"
+30,"Table Deletion and Alteration"
+50,"Key Constraints"
+70,"General Constraints"
+80,"Tuple Insertion"
+100,"Tuple Deletion"
+120,"Tuple Update"
+140,SELECT-FROM
+160,"Arithmetic Expressions"
+180,SELECT-FROM-WHERE
+200,"Pattern Matching"
+220,"Multiple Table Queries"
+240,ORDER-BY
+260,"Set Operations"
+280,"Aggregate Functions"
+300,"GROUP-BY and HAVING"
+320,Sub-Queries
+340,NULL-Values
+360,"Derived Relations and Views"

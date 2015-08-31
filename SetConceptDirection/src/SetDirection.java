@@ -29,7 +29,7 @@ public class SetDirection {
 		//currently topic order and content for course-id = 1 is used. So, the direction of only contents in topic_content would be adjusted
 		readTopicContent();
 		readTopicOrder();
-		file = new File("./resources/adjusted_direction_automatic_indexing_ae.txt");
+		file = new File("./resources/adjusted_direction_automatic_indexing_sql.txt");
 		try {
 			if (!file.exists())
 				file.createNewFile();
@@ -59,7 +59,7 @@ public class SetDirection {
 		String cvsSplitBy = ",";
 		boolean isHeader = true;
 		try {
-			br = new BufferedReader(new FileReader("./resources/topic_content_ae.csv"));
+			br = new BufferedReader(new FileReader("./resources/topic_content_sql.csv"));
 			String[] clmn;
 			String topic;
 			String content;
@@ -112,7 +112,7 @@ public class SetDirection {
 		String cvsSplitBy = ",";
 		boolean isHeader = true;
 		try {
-			br = new BufferedReader(new FileReader("./resources/topic_order.csv"));
+			br = new BufferedReader(new FileReader("./resources/topic_order_sql.csv"));
 			String[] clmn;
 			String topic;
 			int order;
@@ -149,7 +149,7 @@ public class SetDirection {
 		String cvsSplitBy = ",";
 		boolean isHeader = true;
 		try {
-			br = new BufferedReader(new FileReader("./resources/automatic_indexing_ae.csv"));
+			br = new BufferedReader(new FileReader("./resources/automatic_indexing_sql.csv"));
 			String[] clmn;
 			String title,topic, concept, tfidf, direction, type;
 			String firstTopic = "Variables";
@@ -165,7 +165,7 @@ public class SetDirection {
 				tfidf = clmn[2];
 				direction = clmn[3];
 				type = clmn[4];				
-				topic = clmn[5];				
+				topic = clmn[5];
 				if (topic != null)
 				{					
 					if (Arrays.asList(commonConcepts).contains(concept) == true)
@@ -258,7 +258,7 @@ public class SetDirection {
 
 	public static void writeAdjustedDirection(String title,String topic,String concept, String tfidf, String direction, String type) {
 		try {
-			bw.write(title+","+topic+","+concept+","+tfidf+","+direction+","+type);
+			bw.write(title+","+topic.replaceAll("\"", "")+","+concept+","+tfidf+","+direction+","+type);
 			bw.newLine();
 		    bw.flush();
 		} catch (IOException e) {
